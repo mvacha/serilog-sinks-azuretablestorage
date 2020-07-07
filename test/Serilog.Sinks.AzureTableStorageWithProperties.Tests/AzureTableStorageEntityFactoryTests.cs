@@ -27,8 +27,8 @@ namespace Serilog.Sinks.AzureTableStorage.Tests
 
             var logEvent = new Events.LogEvent(timestamp, level, exception, template, properties);
 
-            var keyGenerator = new PropertiesKeyGenerator();
-            var entity = AzureTableStorageEntityFactory.CreateEntityWithProperties(logEvent, null, additionalRowKeyPostfix, keyGenerator);
+            var entityGenerator = new DefaultAzureTableStorageEntityFactory(null, new DefaultAzurePropertyFormatter(), new PropertiesKeyGenerator(), additionalRowKeyPostfix);
+            var entity = entityGenerator.CreateEntityWithProperties(logEvent);
 
             // Make sure the partition key is in the expected format
             Assert.Equal(entity.PartitionKey, "0" + new DateTime(long.Parse(entity.PartitionKey)).Ticks);
@@ -75,7 +75,8 @@ namespace Serilog.Sinks.AzureTableStorage.Tests
 
             var logEvent = new Events.LogEvent(timestamp, level, exception, template, properties);
 
-            var entity = AzureTableStorageEntityFactory.CreateEntityWithProperties(logEvent, null, additionalRowKeyPostfix, new PropertiesKeyGenerator());
+            var entityGenerator = new DefaultAzureTableStorageEntityFactory(null, new DefaultAzurePropertyFormatter(), new PropertiesKeyGenerator(), additionalRowKeyPostfix);
+            var entity = entityGenerator.CreateEntityWithProperties(logEvent);
 
             // Row Key
             var expectedRowKeyWithoutGuid = "Information|" + new string('x', messageSpace-4) + "ABCD|POSTFIX|";
@@ -119,7 +120,8 @@ namespace Serilog.Sinks.AzureTableStorage.Tests
 
             var logEvent = new Events.LogEvent(DateTime.Now, LogEventLevel.Information, null, template, properties);
 
-            var entity = AzureTableStorageEntityFactory.CreateEntityWithProperties(logEvent, null, null, new PropertiesKeyGenerator());
+            var entityGenerator = new DefaultAzureTableStorageEntityFactory(null, new DefaultAzurePropertyFormatter(), new PropertiesKeyGenerator());
+            var entity = entityGenerator.CreateEntityWithProperties(logEvent);
 
             Assert.Equal(3 + properties.Count, entity.Properties.Count);
 
@@ -166,7 +168,8 @@ namespace Serilog.Sinks.AzureTableStorage.Tests
 
             var logEvent = new Events.LogEvent(DateTime.Now, LogEventLevel.Information, null, template, properties);
 
-            var entity = AzureTableStorageEntityFactory.CreateEntityWithProperties(logEvent, null, null, new PropertiesKeyGenerator());
+            var entityGenerator = new DefaultAzureTableStorageEntityFactory(null, new DefaultAzurePropertyFormatter(), new PropertiesKeyGenerator());
+            var entity = entityGenerator.CreateEntityWithProperties(logEvent);
 
             Assert.Equal(3 + properties.Count, entity.Properties.Count);
             Assert.Equal("[(\"d1\": [(\"d1k1\": \"d1k1v1\"), (\"d1k2\": \"d1k2v2\"), (\"d1k3\": \"d1k3v3\")]), (\"d2\": [(\"d2k1\": \"d2k1v1\"), (\"d2k2\": \"d2k2v2\"), (\"d2k3\": \"d2k3v3\")]), (\"d0\": 0)]", entity.Properties["Dictionary"].StringValue);
@@ -209,7 +212,8 @@ namespace Serilog.Sinks.AzureTableStorage.Tests
 
             var logEvent = new Events.LogEvent(DateTime.Now, LogEventLevel.Information, null, template, properties);
 
-            var entity = AzureTableStorageEntityFactory.CreateEntityWithProperties(logEvent, null, null, new PropertiesKeyGenerator());
+            var entityGenerator = new DefaultAzureTableStorageEntityFactory(null, new DefaultAzurePropertyFormatter(), new PropertiesKeyGenerator());
+            var entity = entityGenerator.CreateEntityWithProperties(logEvent);
 
             Assert.Equal(3 + properties.Count, entity.Properties.Count);
             Assert.Equal("[[1, 2, 3, 4, 5], [\"a\", \"b\", \"c\", \"d\", \"e\"]]", entity.Properties["Sequence"].StringValue);
@@ -234,7 +238,8 @@ namespace Serilog.Sinks.AzureTableStorage.Tests
 
             var logEvent = new Events.LogEvent(DateTime.Now, LogEventLevel.Information, null, template, properties);
 
-            var entity = AzureTableStorageEntityFactory.CreateEntityWithProperties(logEvent, null, null, new PropertiesKeyGenerator());
+            var entityGenerator = new DefaultAzureTableStorageEntityFactory(null, new DefaultAzurePropertyFormatter(), new PropertiesKeyGenerator());
+            var entity = entityGenerator.CreateEntityWithProperties(logEvent);
 
             Assert.Equal(252, entity.Properties.Count);
             Assert.Contains("AggregatedProperties", entity.Properties.Keys.ToList());
@@ -256,7 +261,8 @@ namespace Serilog.Sinks.AzureTableStorage.Tests
             var template = new MessageTemplateParser().Parse(messageTemplate);
             var logEvent = new LogEvent(DateTime.Now, LogEventLevel.Information, null, template, properties);
 
-            var entity = AzureTableStorageEntityFactory.CreateEntityWithProperties(logEvent, null, null, new PropertiesKeyGenerator(), includedProperties);
+            var entityGenerator = new DefaultAzureTableStorageEntityFactory(null, new DefaultAzurePropertyFormatter(), new PropertiesKeyGenerator(), null, includedProperties);
+            var entity = entityGenerator.CreateEntityWithProperties(logEvent);
 
             Assert.True(entity.Properties.ContainsKey("IncludedProperty"));
             Assert.False(entity.Properties.ContainsKey("AdditionalProperty"));

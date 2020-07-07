@@ -17,11 +17,9 @@ using Microsoft.WindowsAzure.Storage.Table;
 using Serilog.Events;
 using Serilog.Sinks.AzureTableStorage.AzureTableProvider;
 using Serilog.Sinks.AzureTableStorage.KeyGenerator;
-using Serilog.Sinks.AzureTableStorage.Sinks.KeyGenerator;
 using Serilog.Sinks.PeriodicBatching;
 using System;
 using System.Collections.Generic;
-using System.Threading;
 using System.Threading.Tasks;
 
 namespace Serilog.Sinks.AzureTableStorage
@@ -32,14 +30,12 @@ namespace Serilog.Sinks.AzureTableStorage
     public class AzureBatchingTableStorageWithPropertiesSink : PeriodicBatchingSink
     {
         readonly IFormatProvider _formatProvider;
-        readonly string _additionalRowKeyPostfix;
-        readonly string[] _propertyColumns;
         const int _maxAzureOperationsPerBatch = 100;
-        readonly IKeyGenerator _keyGenerator;
         readonly CloudStorageAccount _storageAccount;
         readonly string _storageTableName;
         readonly bool _bypassTableCreationValidation;
         readonly ICloudTableProvider _cloudTableProvider;
+        readonly IAzureTableStorageEntityFactory _azureEntityFactory;
 
         /// <summary>
         /// Construct a sink that saves logs to the specified storage account.
@@ -65,6 +61,31 @@ namespace Serilog.Sinks.AzureTableStorage
             string[] propertyColumns = null,
             bool bypassTableCreationValidation = false,
             ICloudTableProvider cloudTableProvider = null)
+            : this(storageAccount, formatProvider, batchSizeLimit, period,
+                  new DefaultAzureTableStorageEntityFactory(formatProvider, new DefaultAzurePropertyFormatter(formatProvider), keyGenerator ?? new DefaultKeyGenerator(), additionalRowKeyPostfix, propertyColumns),
+                  storageTableName, bypassTableCreationValidation, cloudTableProvider)
+        {
+        }
+           
+        /// <summary>
+        /// Construct a sink that saves logs to the specified storage account.
+        /// </summary>
+        /// <param name="storageAccount">The Cloud Storage Account to use to insert the log entries to.</param>
+        /// <param name="formatProvider">Supplies culture-specific formatting information, or null.</param>
+        /// <param name="batchSizeLimit"></param>
+        /// <param name="period"></param>
+        /// <param name="storageTableName">Table name that log entries will be written to. Note: Optional, setting this may impact performance</param>
+        /// <param name="bypassTableCreationValidation">Bypass the exception in case the table creation fails.</param>
+        /// <param name="cloudTableProvider">Cloud table provider to get current log table.</param>
+        /// <returns>Logger configuration, allowing configuration to continue.</returns>
+        public AzureBatchingTableStorageWithPropertiesSink(CloudStorageAccount storageAccount,
+            IFormatProvider formatProvider,
+            int batchSizeLimit,
+            TimeSpan period,
+            IAzureTableStorageEntityFactory azureEntityFactory,
+            string storageTableName = null,
+            bool bypassTableCreationValidation = false,
+            ICloudTableProvider cloudTableProvider = null)
             : base(batchSizeLimit, period)
         {
             if (string.IsNullOrEmpty(storageTableName))
@@ -76,12 +97,11 @@ namespace Serilog.Sinks.AzureTableStorage
             _storageTableName = storageTableName;
             _bypassTableCreationValidation = bypassTableCreationValidation;
             _cloudTableProvider = cloudTableProvider ?? new DefaultCloudTableProvider();
-
             _formatProvider = formatProvider;
-            _additionalRowKeyPostfix = additionalRowKeyPostfix;
-            _propertyColumns = propertyColumns;
-            _keyGenerator = keyGenerator ?? new PropertiesKeyGenerator();
-        }
+            _azureEntityFactory = azureEntityFactory;
+       }
+
+
 
         protected override async Task EmitBatchAsync(IEnumerable<LogEvent> events)
         {
@@ -92,7 +112,7 @@ namespace Serilog.Sinks.AzureTableStorage
 
             foreach (var logEvent in events)
             {
-                var tableEntity = AzureTableStorageEntityFactory.CreateEntityWithProperties(logEvent, _formatProvider, _additionalRowKeyPostfix, _keyGenerator, _propertyColumns);
+                var tableEntity = _azureEntityFactory.CreateEntityWithProperties(logEvent);
 
                 // If partition changed, store the new and force an execution
                 if (lastPartitionKey != tableEntity.PartitionKey)

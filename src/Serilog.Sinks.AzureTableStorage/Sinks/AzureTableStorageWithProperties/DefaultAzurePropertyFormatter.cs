@@ -22,8 +22,12 @@ namespace Serilog.Sinks.AzureTableStorage
     /// Converts <see cref="LogEventProperty"/> values into simple scalars,
     /// dictionaries and lists so that they can be persisted in Azure Table Storage.
     /// </summary>
-    public static class AzurePropertyFormatter
+    public class DefaultAzurePropertyFormatter : IAzurePropertyFormatter
     {
+        readonly IFormatProvider _formatProvider;
+
+        public DefaultAzurePropertyFormatter(IFormatProvider formatProvider = null) => _formatProvider = formatProvider;
+
         /// <summary>
         /// Simplify the object so as to make handling the serialized
         /// representation easier.
@@ -32,7 +36,7 @@ namespace Serilog.Sinks.AzureTableStorage
         /// <param name="format">A format string applied to the value, or null.</param>
         /// <param name="formatProvider">A format provider to apply to the value, or null to use the default.</param>
         /// <returns>An Azure Storage entity EntityProperty</returns>
-        public static EntityProperty ToEntityProperty(LogEventPropertyValue value, string format = null, IFormatProvider formatProvider = null)
+        public EntityProperty ToEntityProperty(LogEventPropertyValue value, string format = null)
         {
             if (value is ScalarValue scalar)
             {
@@ -41,23 +45,23 @@ namespace Serilog.Sinks.AzureTableStorage
 
             if (value is DictionaryValue dict)
             {
-                return new EntityProperty(dict.ToString(format, formatProvider));
+                return new EntityProperty(dict.ToString(format, _formatProvider));
             }
 
             if (value is SequenceValue seq)
             {
-                return new EntityProperty(seq.ToString(format, formatProvider));
+                return new EntityProperty(seq.ToString(format, _formatProvider));
             }
 
             if (value is StructureValue str)
             {
-                return new EntityProperty(str.ToString(format, formatProvider));
+                return new EntityProperty(str.ToString(format, _formatProvider));
             }
 
             return null;
         }
 
-        private static EntityProperty SimplifyScalar(object value)
+        private EntityProperty SimplifyScalar(object value)
         {
             if (value == null) return new EntityProperty((byte[])null);
 
