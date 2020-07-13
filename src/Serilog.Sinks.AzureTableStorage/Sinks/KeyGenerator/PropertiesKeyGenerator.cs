@@ -2,9 +2,8 @@
 using System.Text;
 using System.Text.RegularExpressions;
 using Serilog.Events;
-using Serilog.Sinks.AzureTableStorage.KeyGenerator;
 
-namespace Serilog.Sinks.AzureTableStorage.Sinks.KeyGenerator
+namespace Serilog.Sinks.AzureTableStorage.KeyGenerator
 {
     public class PropertiesKeyGenerator : DefaultKeyGenerator
     {

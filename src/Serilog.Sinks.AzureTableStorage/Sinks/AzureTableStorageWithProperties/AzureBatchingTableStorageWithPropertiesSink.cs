@@ -62,7 +62,7 @@ namespace Serilog.Sinks.AzureTableStorage
             bool bypassTableCreationValidation = false,
             ICloudTableProvider cloudTableProvider = null)
             : this(storageAccount, formatProvider, batchSizeLimit, period,
-                  new DefaultAzureTableStorageEntityFactory(formatProvider, new DefaultAzurePropertyFormatter(formatProvider), keyGenerator ?? new DefaultKeyGenerator(), additionalRowKeyPostfix, propertyColumns),
+                  new DefaultAzureTableStorageEntityFactory(formatProvider, new DefaultAzurePropertyFormatter(formatProvider), keyGenerator ?? new PropertiesKeyGenerator(), additionalRowKeyPostfix, propertyColumns),
                   storageTableName, bypassTableCreationValidation, cloudTableProvider)
         {
         }
